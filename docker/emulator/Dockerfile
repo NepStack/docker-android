@@ -73,11 +73,13 @@ ENV APP_PATH=${WORK_PATH}/${SCRIPT_PATH}
 RUN mkdir -p ${APP_PATH}
 COPY mixins ${APP_PATH}/mixins
 COPY cli ${APP_PATH}/cli
-# NepStack fork: upstream's private build-secret step replaced by installing the open-source CLI
-# (provides /usr/local/bin/docker-android used by the supervisord configs).
-RUN cd ${APP_PATH}/cli \
- && PIP_BREAK_SYSTEM_PACKAGES=1 pip install --no-cache-dir . \
- && chmod +x ${APP_PATH}/mixins/scripts/*.sh
+# NepStack fork: upstream's private build-secret step replaced by the open-source CLI,
+# exposed as /usr/local/bin/docker-android (used by the supervisord configs).
+RUN PIP_BREAK_SYSTEM_PACKAGES=1 pip install --no-cache-dir click requests \
+ && printf '#!/bin/bash\nexport PYTHONPATH="%s/cli/src"\nexec python3 "%s/cli/src/app.py" "$@"\n' "${APP_PATH}" "${APP_PATH}" > /usr/local/bin/docker-android \
+ && chmod 755 /usr/local/bin/docker-android \
+ && chmod +x ${APP_PATH}/mixins/scripts/*.sh \
+ && chown -R ${USERID}:${GROUPID} ${APP_PATH}
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 #===================
