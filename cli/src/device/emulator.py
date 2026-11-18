@@ -230,8 +230,10 @@ class Emulator(Device):
         super().wait_until_ready()
         booting_cmd = f"adb -s {self.adb_name} wait-for-device shell getprop sys.boot_completed"
         focus_cmd = f"adb -s {self.adb_name} shell dumpsys window | grep -i mCurrentFocus"
+        # NepStack fork: boot can take several minutes with software rendering or a busy host.
+        boot_attempts = int(os.getenv("EMULATOR_BOOT_ATTEMPTS", "300"))
         self.check_adb_command(self.ReadinessCheck.BOOTED,
-                               booting_cmd, "1", 60, self.interval_waiting)
+                               booting_cmd, "1", boot_attempts, self.interval_waiting)
         time.sleep(self.interval_after_booting)
 
         interval_pop_up = 0
@@ -251,7 +253,7 @@ class Emulator(Device):
                                    interval_pop_up, key_enter_cmd)
 
         self.check_adb_command(self.ReadinessCheck.WELCOME_SCREEN,
-                               focus_cmd, "launcheractivity", 60, self.interval_waiting)
+                               focus_cmd, "launcheractivity", boot_attempts, self.interval_waiting)
         self.disable_animations()
         self.logger.info(f"{self.device_type} is ready to use")
 
