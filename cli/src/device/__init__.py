@@ -1,15 +1,13 @@
 import json
 import logging
 import os
-import platform
-import requests
 import signal
 import time
 
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from helper import convert_str_to_bool, get_env_value_or_raise
+from helper import get_env_value_or_raise
 from constants import DEVICE, ENV
 
 
@@ -20,7 +18,8 @@ class DeviceType(Enum):
 
 
 class Device(ABC):
-    FORM_ID = "1FAIpQLSdrKWQdMh6Nt8v8NQdYvTIntohebAgqWCpXT3T9NofAoxcpkw"
+    # NepStack fork: upstream usage analytics (Google Form + ipinfo.io lookup) removed entirely.
+    # The field names below are kept only so existing subclasses keep working; nothing is ever sent.
     FORM_USER = "user"
     FORM_CITY = "city"
     FORM_REGION = "region"
@@ -42,24 +41,23 @@ class Device(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.device_type = None
         self.interval_waiting = int(os.getenv(ENV.DEVICE_INTERVAL_WAITING, 2))
-        self.user_behavior_analytics = convert_str_to_bool(os.getenv(ENV.USER_BEHAVIOR_ANALYTICS, "true"))
         self.form_field = {
-            Device.FORM_USER: "entry.108751316",
-            Device.FORM_CITY: "entry.2083022547",
-            Device.FORM_REGION: "entry.1083141079",
-            Device.FORM_COUNTRY: "entry.1946159560",
-            Device.FORM_APP_VERSION: "entry.818050927",
-            Device.FORM_APPIUM: "entry.181610571",
-            Device.FORM_APPIUM_ADDITIONAL_ARGS: "entry.727759656",
-            Device.FORM_WEB_LOG: "entry.1225589007",
-            Device.FORM_WEB_VNC: "entry.2055392048",
-            Device.FORM_SCREEN_RESOLUTION: "entry.709976626",
-            Device.FORM_DEVICE_TYPE: "entry.207096546",
-            Device.FORM_EMU_DEVICE: "entry.1960740382",
-            Device.FORM_EMU_ANDROID_VERSION: "entry.671872491",
-            Device.FORM_EMU_NO_SKIN: "entry.403556951",
-            Device.FORM_EMU_DATA_PARTITION: "entry.1052258875",
-            Device.FORM_EMU_ADDITIONAL_ARGS: "entry.57529972"
+            Device.FORM_USER: "user",
+            Device.FORM_CITY: "city",
+            Device.FORM_REGION: "region",
+            Device.FORM_COUNTRY: "country",
+            Device.FORM_APP_VERSION: "app_version",
+            Device.FORM_APPIUM: "appium",
+            Device.FORM_APPIUM_ADDITIONAL_ARGS: "appium_additional_args",
+            Device.FORM_WEB_LOG: "web_log",
+            Device.FORM_WEB_VNC: "web_vnc",
+            Device.FORM_SCREEN_RESOLUTION: "screen_resolution",
+            Device.FORM_DEVICE_TYPE: "device_type",
+            Device.FORM_EMU_DEVICE: "emu_device",
+            Device.FORM_EMU_ANDROID_VERSION: "emu_android_version",
+            Device.FORM_EMU_NO_SKIN: "emu_no_skin",
+            Device.FORM_EMU_DATA_PARTITION: "emu_data_partition",
+            Device.FORM_EMU_ADDITIONAL_ARGS: "emu_additional_args"
         }
         self.form_data = {}
         signal.signal(signal.SIGTERM, self.tear_down)
@@ -71,42 +69,7 @@ class Device(ABC):
         # It won't work using docker exec
         # os.environ[constants.ENV_DEVICE_STATUS] = current_status
 
-    def _prepare_analytics_payload(self) -> None:
-        self.form_data.update({
-            self.form_field[Device.FORM_USER]: f"{platform.platform()}_{platform.version().replace(' ', '_')}",
-            self.form_field[Device.FORM_APP_VERSION]: os.getenv(ENV.DOCKER_ANDROID_VERSION),
-            self.form_field[Device.FORM_DEVICE_TYPE]: self.device_type,
-            self.form_field[Device.FORM_WEB_VNC]: convert_str_to_bool(os.getenv(ENV.WEB_VNC)),
-            self.form_field[Device.FORM_WEB_LOG]: convert_str_to_bool(os.getenv(ENV.WEB_LOG)),
-            self.form_field[Device.FORM_APPIUM]: convert_str_to_bool(os.getenv(ENV.APPIUM))
-        })
-
-        try:
-            res = requests.get("https://ipinfo.io")
-            if res.ok:
-                json_res = res.json()
-                self.form_data.update({
-                    self.form_field[Device.FORM_CITY]: json_res[Device.FORM_CITY],
-                    self.form_field[Device.FORM_REGION]: json_res[Device.FORM_REGION],
-                    self.form_field[Device.FORM_COUNTRY]: json_res[Device.FORM_COUNTRY]
-                })
-        except requests.exceptions.RequestException as rer:
-            self.logger.warning(rer)
-            pass
-        except KeyError as ke:
-            self.logger.warning(ke)
-            pass
-
     def create(self) -> None:
-        if self.user_behavior_analytics:
-            self.logger.info("Sending user behavior analytics to improve the tool")
-            try:
-                form_url = f"https://docs.google.com/forms/d/e/{Device.FORM_ID}/formResponse"
-                self._prepare_analytics_payload()
-                requests.post(url=form_url, data=self.form_data)
-            except requests.exceptions.RequestException as rer:
-                self.logger.warning(rer)
-                pass
         self.set_status(DEVICE.STATUS_CREATING)
 
     def start(self) -> None:

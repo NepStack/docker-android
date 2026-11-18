@@ -1,4 +1,4 @@
-ARG DOCKER_ANDROID_VERSION
+ARG DOCKER_ANDROID_VERSION=v3.9.0-p2
 FROM budtmo/docker-android:base_${DOCKER_ANDROID_VERSION}
 
 #==================
@@ -70,8 +70,7 @@ ENV APP_PATH=${WORK_PATH}/${SCRIPT_PATH}
 RUN mkdir -p ${APP_PATH}
 COPY mixins ${APP_PATH}/mixins
 COPY cli ${APP_PATH}/cli
-RUN --mount=type=secret,id=extension,dst=/tmp/extension.sh \
-    bash /tmp/extension.sh
+# NepStack fork: upstream's private build-secret extension step removed so the image builds anywhere.
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 #===================
