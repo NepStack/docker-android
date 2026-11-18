@@ -98,10 +98,15 @@ def start_display_wm() -> None:
 
 
 def start_port_forwarder() -> None:
-    import socket
-    local_ip = socket.gethostbyname(socket.gethostname())
-    cmd = f"/usr/bin/socat tcp-listen:5554,bind={local_ip},fork tcp:127.0.0.1:5554 & " \
-          f"/usr/bin/socat tcp-listen:5555,bind={local_ip},fork tcp:127.0.0.1:5555"
+    # NepStack fork: forward on every container IP (the container can sit on several Docker
+    # networks, e.g. the compose network plus Coolify's proxy network).
+    ips = subprocess.check_output(["hostname", "-I"]).decode().split()
+    ips = [ip for ip in ips if ":" not in ip] or ["0.0.0.0"]
+    parts = []
+    for ip in ips:
+        parts.append(f"/usr/bin/socat tcp-listen:5554,bind={ip},fork,reuseaddr tcp:127.0.0.1:5554")
+        parts.append(f"/usr/bin/socat tcp-listen:5555,bind={ip},fork,reuseaddr tcp:127.0.0.1:5555")
+    cmd = " & ".join(parts)
     pf = Application("port_forwarder", cmd)
     pf.start()
 
