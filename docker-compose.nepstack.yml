@@ -1,6 +1,7 @@
 # NepStack: Android 12 + Android 16 emulators, built from this fork.
-# Rules: no volumes, no bind mounts. Only host access is /dev/kvm. Ports bound to localhost only.
-# Connect via SSH tunnel: ssh -L 5555:localhost:5555 -L 5556:localhost:5556 -L 6080:localhost:6080 -L 6081:localhost:6081 <server>
+# Rules: no volumes, no bind mounts. Only host access is /dev/kvm. Host ports bound to localhost only.
+# Screens are also reachable via Coolify domains (sslip.io), protected by VNC_PASSWORD (required; set it in Coolify).
+# adb stays private: ssh -L 5555:localhost:5555 -L 5556:localhost:5556 <server>
 services:
   android-12:
     build:
@@ -14,6 +15,7 @@ services:
     environment:
       EMULATOR_DEVICE: "Samsung Galaxy S10"
       WEB_VNC: "true"
+      VNC_PASSWORD: "${VNC_PASSWORD:?}"
       EMULATOR_ADDITIONAL_ARGS: "-memory 4096 -cores 3"
     ports:
       - "127.0.0.1:5555:5555"
@@ -34,6 +36,7 @@ services:
     environment:
       EMULATOR_DEVICE: "Samsung Galaxy S10"
       WEB_VNC: "true"
+      VNC_PASSWORD: "${VNC_PASSWORD:?}"
       EMULATOR_ADDITIONAL_ARGS: "-memory 4096 -cores 3"
     ports:
       - "127.0.0.1:5556:5555"
