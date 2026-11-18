@@ -20,17 +20,20 @@ RUN yes | sdkmanager --licenses \
 #=============
 # UI Packages
 #-------------
-# feh
-#   Screen background
-# x11vnc
-#   VNC server
-# xterm
-#   Terminal emulator
+# feh       Screen background
+# x11vnc    VNC server
+# xterm     Terminal emulator
+# xvfb      Virtual display (NepStack: was installed by upstream's private build step)
+# openbox   Window manager (NepStack: same)
+# sudo      Used by the CLI to grant KVM access inside the container
 #==================
 RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
     feh \
     x11vnc \
     xterm \
+    xvfb \
+    openbox \
+    sudo \
  && apt autoremove -y \
  && apt clean all \
  && rm -rf /var/lib/apt/lists/*
@@ -70,13 +73,18 @@ ENV APP_PATH=${WORK_PATH}/${SCRIPT_PATH}
 RUN mkdir -p ${APP_PATH}
 COPY mixins ${APP_PATH}/mixins
 COPY cli ${APP_PATH}/cli
-# NepStack fork: upstream's private build-secret extension step removed so the image builds anywhere.
+# NepStack fork: upstream's private build-secret step replaced by installing the open-source CLI
+# (provides /usr/local/bin/docker-android used by the supervisord configs).
+RUN cd ${APP_PATH}/cli \
+ && PIP_BREAK_SYSTEM_PACKAGES=1 pip install --no-cache-dir . \
+ && chmod +x ${APP_PATH}/mixins/scripts/*.sh
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 #===================
 # Configure OpenBox
 #===================
-RUN echo ${APP_PATH}/mixins/configs/display/.fehbg >> /etc/xdg/openbox/autostart
+RUN mkdir -p /etc/xdg/openbox \
+ && echo ${APP_PATH}/mixins/configs/display/.fehbg >> /etc/xdg/openbox/autostart
 
 #==================
 # Use created user
