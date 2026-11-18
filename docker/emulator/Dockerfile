@@ -38,6 +38,53 @@ RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
  && apt clean all \
  && rm -rf /var/lib/apt/lists/*
 
+#=====================================================
+# Emulator runtime libraries
+# (NepStack: were installed by upstream's private build step)
+#=====================================================
+RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
+    libpulse0 \
+    libnss3 \
+    libgl1 \
+    libegl1 \
+    libgbm1 \
+    libdrm2 \
+    libdbus-1-3 \
+    libbsd0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxkbfile1 \
+    libxrandr2 \
+    libxrender1 \
+    libxtst6 \
+    libxkbcommon0 \
+    libxkbcommon-x11-0 \
+    libxcb1 \
+    libxcb-cursor0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-shape0 \
+    libxcb-xfixes0 \
+    libxcb-xinerama0 \
+    libxcb-xkb1 \
+    libfontconfig1 \
+    libfreetype6 \
+ && (apt-get -qqy install --no-install-recommends libasound2t64 || apt-get -qqy install --no-install-recommends libasound2) \
+ && apt autoremove -y \
+ && apt clean all \
+ && rm -rf /var/lib/apt/lists/* \
+ && missing="$(ldd ${ANDROID_HOME}/emulator/qemu/linux-x86_64/qemu-system-x86_64 | grep 'not found' || true)" \
+ && if [ -n "$missing" ]; then echo "Missing emulator libraries:"; echo "$missing"; exit 1; fi
+
 #=======
 # noVNC
 #=======
