@@ -26,6 +26,7 @@ RUN yes | sdkmanager --licenses \
 # xvfb      Virtual display (NepStack: was installed by upstream's private build step)
 # openbox   Window manager (NepStack: same)
 # sudo      Used by the CLI to grant KVM access inside the container
+# iproute2  NepStack: lets the dev box remove the container's internet route (phone = box only)
 #==================
 RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
     feh \
@@ -34,6 +35,7 @@ RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
     xvfb \
     openbox \
     sudo \
+    iproute2 \
  && apt autoremove -y \
  && apt clean all \
  && rm -rf /var/lib/apt/lists/*
